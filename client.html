@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+	<script>
+	$(document).ready(function(){
+		var socket = io.connect("192.168.2.88:8000");
+		$("#chat").hide();
+		$("#name").focus();
+		$("form").submit(function(event){
+    		event.preventDefault();
+		});
+
+		$("#join").click(function(){
+			var name = $("#name").val();
+			if (name != "") {
+				socket.emit("join", name);
+				$("#login").detach();
+				$("#chat").show();
+				$("#msg").focus();
+				ready = true;
+			}
+		});
+
+		$("#name").keypress(function(e){
+			if(e.which == 13) {
+				var name = $("#name").val();
+				if (name != "") {
+					socket.emit("join", name);
+					ready = true;
+					$("#login").detach();
+					$("#chat").show();
+					$("#msg").focus();
+				}
+			}
+		});
+
+		socket.on("update", function(msg) {
+			if(ready)
+				$("#msgs").append("<li>" + msg + "</li>");
+		})
+
+		socket.on("update-people", function(people){
+			if(ready) {
+				$("#people").empty();
+				$.each(people, function(clientid, name) {
+					$('#people').append("<li>" + name + "</li>");
+				});
+			}
+		});
+
+		socket.on("chat", function(who, msg){
+			if(ready) {
+				$("#msgs").append("<li><strong><span class='text-success'>" + who + ":</span></strong> " + msg + "</li>");
+			}
+		});
+
+		socket.on("disconnect", function(){
+			$("#msgs").append("<li><strong><span class='text-warning'>De server is momenteel offline</span></strong></li>");
+			$("#msg").attr("disabled", "disabled");
+			$("#send").attr("disabled", "disabled");
+		});
+
+
+		$("#send").click(function(){
+			var msg = $("#msg").val();
+			socket.emit("send", msg);
+			$("#msg").val("");
+		});
+
+		$("#msg").keypress(function(e){
+			if(e.which == 13) {
+				var msg = $("#msg").val();
+				socket.emit("send", msg);
+				$("#msg").val("");
+			}
+		});
+
+	});
+</script>
+<body>
+
+<div class="row">
+  <div class="span2">
+  	<ul id="people" class="unstyled"></ul>
+  </div>
+  <div class="span4">
+  	<ul id="msgs" class="unstyled"></ul>
+  </div>
+</div>
+<div class="row">
+	<div class="span5 offset2" id="login">
+		<form class="form-inline">
+  			<input type="text" class="input-small" placeholder="Jouw naam" id="name">
+			<input type="button" name="join" id="join" value="Verbind" class="btn btn-primary">
+		</form>
+	</div>
+
+	<div class="span5 offset2" id="chat">
+		<form id="2" class="form-inline">
+  			<input type="text" class="input" placeholder="Jouw bericht" id="msg">
+			<input type="button" name="send" id="send" value="Verzenden" class="btn btn-success">
+		</form>
+	</div>
+  </div>
+</div>
+
+</body>
+</html>
